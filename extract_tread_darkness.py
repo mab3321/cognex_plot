@@ -4,6 +4,8 @@ import numpy as np
 import cv2
 from scipy.interpolate import interp1d
 from scipy.signal import argrelextrema
+from scipy.signal import butter, filtfilt
+Constant = 0.12
 
 # Load the image using OpenCV (replace 'your_image.jpg' with the path to your image)
 def extract_tread(imgPath):
@@ -12,8 +14,8 @@ def extract_tread(imgPath):
     # Get the green channel
     g1 = image[:, :, 1]
 
-    # Create a mask to identify where the green pixel value is greater than 7
-    mask = g1 < 200
+    # Create a mask to identify where the green pixel value is less than 200
+    mask = g1 < 230
 
     # Set the pixel values to (0, 0, 0) for all channels where the mask is True
     image[mask] = [0, 0, 0]
@@ -23,14 +25,14 @@ def extract_tread(imgPath):
     image_PIL = Image.fromarray(gray_image)
     image_PIL.save('image.jpg')
     print("Tread Extraction From Image Completed.")
-
+    return "image.jpg"
 def load_binary_image(imgPath):
     """Load the binary image using OpenCV."""
     return cv2.imread(imgPath, cv2.IMREAD_GRAYSCALE)
 
 def get_unique_pixels_coordinates(binary_image):
     """Get the coordinates of the non-zero (white) pixels in the binary image."""
-    return np.where(binary_image == 255)
+    return np.where(binary_image > 200)
 
 def spline_interpolation(x, y):
     """Perform spline interpolation."""
@@ -62,7 +64,7 @@ def plot_extrema(maxima_x, maxima_y, prev_x, prev_y):
     """Plot relative maxima and annotate the plot with differences."""
     for x, y in zip(maxima_x, maxima_y):
         if prev_x is not None and prev_y is not None and abs(y - prev_y) > 20:
-            difference = abs(y - prev_y) * 0.22717
+            difference = abs(y - prev_y) * Constant
             plt.scatter(x, y, c='g', marker='o', s=100, label='Maxima')
             plt.annotate(f'Diff: {difference:.2f} mm', (x, y), textcoords="offset points", xytext=(0, -20), ha='center', fontsize=7)
             prev_x = x
@@ -114,5 +116,7 @@ def DrawGraph(imgPath):
     set_plot_properties('X-axis (Column Index)', 'Y-axis (Row Index)', 'Smoothed Curve with Relative Minima and Maxima')
     show_plot()
 
-extract_tread(r"C:\Users\MAB\Downloads\AsadTyrecpy.jpg")
-DrawGraph('image.jpg')
+imgPath = r"C:\Users\MAB\Downloads\back_right.jpg"
+removedBg = extract_tread(imgPath)
+DrawGraph(removedBg)
+

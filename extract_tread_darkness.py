@@ -7,15 +7,64 @@ from scipy.signal import argrelextrema
 from scipy.signal import butter, filtfilt
 Constant = 0.12
 
+def preprocess_image(image_path):
+    # Load the image
+    image = cv2.imread(image_path)
+
+    # Convert to grayscale and apply smoothing
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray = cv2.medianBlur(gray, 5)  # Apply median filtering for noise reduction
+
+    # Apply adaptive thresholding for better boundary detection
+    thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
+
+    return thresh
+
+def find_upper_border(thresh):
+    # Find the uppermost non-zero pixels in each column using Canny edge detector
+    edges = cv2.Canny(thresh, 50, 150)  # Adjust the threshold values
+
+    # Apply dilation to close small gaps
+    kernel = np.ones((5, 5), np.uint8)
+    edges = cv2.dilate(edges, kernel, iterations=1)
+
+    # Apply closing to fill small gaps
+    edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
+
+    # Find upper border
+    upper_border = np.argmax(edges, axis=0)
+
+    return upper_border
+
+def fill_gaps_with_previous(upper_border):
+    # Fill gaps with the same number as the previous non-zero value
+    for i in range(1, len(upper_border)):
+        if upper_border[i] == 0:
+            upper_border[i] = upper_border[i - 1]
+
+    return upper_border
+
+def smooth_and_plot(upper_border):
+    # Smooth the upper border
+    window_size = 5
+    upper_border_smoothed = np.convolve(upper_border, np.ones(window_size) / window_size, mode='valid')
+
+    # Plot the upper border
+    plt.plot(upper_border_smoothed)
+    plt.xlabel("Column Number")
+    plt.ylabel("Row Number")
+    plt.title("Smoothed Upper Border with Gaps Filled")
+    plt.show()
+
 # Load the image using OpenCV (replace 'your_image.jpg' with the path to your image)
 def extract_tread(imgPath):
     image = cv2.imread(imgPath)
 
-    # Get the green channel
-    g1 = image[:, :, 1]
+    # Get the red channel
+    g1 = image[:, :, 2]
 
     # Create a mask to identify where the green pixel value is less than 200
-    mask = g1 < 230
+    mask = g1 < 200
 
     # Set the pixel values to (0, 0, 0) for all channels where the mask is True
     image[mask] = [0, 0, 0]
@@ -32,7 +81,7 @@ def load_binary_image(imgPath):
 
 def get_unique_pixels_coordinates(binary_image):
     """Get the coordinates of the non-zero (white) pixels in the binary image."""
-    return np.where(binary_image > 200)
+    return np.where(binary_image > 100)
 
 def spline_interpolation(x, y):
     """Perform spline interpolation."""
@@ -86,37 +135,13 @@ def show_plot():
     """Show the plot."""
     plt.show()
 
-def DrawGraph(imgPath):
-    binary_image = load_binary_image(imgPath)
-    row_indices, col_indices = get_unique_pixels_coordinates(binary_image)
+def DrawGraph(image_path):
+    thresh = preprocess_image(image_path)
+    upper_border = find_upper_border(thresh)
+    upper_border_filled = fill_gaps_with_previous(upper_border)
+    smooth_and_plot(upper_border_filled)
 
-    unique_y_values = {}
-    for col, row in zip(col_indices, row_indices):
-        if col not in unique_y_values:
-            unique_y_values[col] = row
-
-    unique_x = list(unique_y_values.keys())
-    unique_y = list(unique_y_values.values())
-
-    f = spline_interpolation(unique_x, unique_y)
-    x_fit = np.linspace(min(unique_x), max(unique_x), num=1000)
-    y_fit = f(x_fit)
-
-    window_size = 25
-    y_smooth = apply_low_pass_filter(y_fit, window_size)
-
-    minima_x, minima_y, maxima_x, maxima_y = find_relative_extrema(x_fit, y_smooth)
-
-    plot_smoothed_curve(x_fit, y_smooth)
-
-    prev_x = None
-    prev_y = None
-    plot_extrema(maxima_x, maxima_y, prev_x, prev_y)
-
-    set_plot_properties('X-axis (Column Index)', 'Y-axis (Row Index)', 'Smoothed Curve with Relative Minima and Maxima')
-    show_plot()
-
-imgPath = r"C:\Users\MAB\Downloads\back_right.jpg"
+imgPath = r"C:\Users\MAB\Downloads\tyre\1226071305.jpg"
 removedBg = extract_tread(imgPath)
 DrawGraph(removedBg)
 

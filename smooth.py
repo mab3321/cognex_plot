@@ -23,7 +23,7 @@ def smooth_border(image_path, kernel_size=15):
 
 if __name__ == "__main__":
     # Provide the path to your grayscale image
-    image_path = r"C:\Users\MAB\Downloads\MegaScanner\binary_image.jpg"
+    image_path = r"image.jpg"
 
     # Adjust the kernel size for the blurring operation if needed
     kernel_size = 15

@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 
 # Constants
-constant = 0.0641
-image_path = 'image.jpg'
+constant = 0.096
+image_path = 'standard.jpg'
 
 def preprocess_image(image_path):
     # Load the image
@@ -45,6 +45,30 @@ def fill_gaps_with_previous(upper_border):
 
     return upper_border
 
+# def smooth_and_plot(upper_border_filled):
+#     # Smooth the upper border
+#     y_smoothed = np.convolve(upper_border_filled, np.ones(50) / 50, mode='valid') * constant
+
+#     # Find the peaks with prominence to filter out smaller peaks - adjusted parameters for this specific case
+#     peaks, properties = find_peaks(y_smoothed, prominence=0.3)  # Adjust prominence as needed
+
+#     # Plot the updated graph with annotations for the peaks
+#     plt.figure(figsize=(14, 7))
+#     plt.plot(y_smoothed, label='Smoothed Upper Border')
+#     plt.plot(peaks, y_smoothed[peaks], "x", label='Peaks')
+
+#     # Annotate the peaks with their y-values (transformed to mm)
+#     for peak, value in zip(peaks, y_smoothed[peaks]):
+#         plt.annotate(f'{value:.2f}', (peak, value), textcoords="offset points", 
+#                      xytext=(-15,10), ha='center', 
+#                      bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="white"))
+
+#     plt.title('Peak and Trough Differences')
+#     plt.xlabel("X axis")
+#     plt.ylabel("Transformed Y axis (mm)")
+#     plt.legend()
+#     plt.show()
+
 def smooth_and_plot(upper_border_filled):
     # Smooth the upper border
     y_smoothed = np.convolve(upper_border_filled, np.ones(50) / 50, mode='valid') * constant
@@ -52,23 +76,16 @@ def smooth_and_plot(upper_border_filled):
     # Find the peaks with prominence to filter out smaller peaks - adjusted parameters for this specific case
     peaks, properties = find_peaks(y_smoothed, prominence=0.3)  # Adjust prominence as needed
 
-    # Plot the updated graph with annotations for the peaks
+    # Plot the updated graph without annotations for the peaks
     plt.figure(figsize=(14, 7))
     plt.plot(y_smoothed, label='Smoothed Upper Border')
     plt.plot(peaks, y_smoothed[peaks], "x", label='Peaks')
-
-    # Annotate the peaks with their y-values (transformed to mm)
-    for peak, value in zip(peaks, y_smoothed[peaks]):
-        plt.annotate(f'{value:.2f}', (peak, value), textcoords="offset points", 
-                     xytext=(-15,10), ha='center', 
-                     bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="white"))
 
     plt.title('Peak and Trough Differences')
     plt.xlabel("X axis")
     plt.ylabel("Transformed Y axis (mm)")
     plt.legend()
     plt.show()
-
 # Main program
 thresh = preprocess_image(image_path)
 upper_border = find_upper_border(thresh)

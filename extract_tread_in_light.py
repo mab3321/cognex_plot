@@ -115,7 +115,7 @@ def DrawGraph(imgPath):
     set_plot_properties('X-axis (Column Index)', 'Y-axis (Row Index)', 'Smoothed Curve with Relative Minima and Maxima')
     show_plot()
 
-imgPath = r"C:\Users\MAB\Downloads\back_right.jpg"
+imgPath = r"captured_image_1732360162.jpg"
 removedBg = extract_tread(imgPath)
 DrawGraph(removedBg)
 

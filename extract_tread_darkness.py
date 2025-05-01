@@ -3,8 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 
-Constant = 0.096  # Scaling factor
-
+Constant = 0.02509  # Scaling factor
 def preprocess_image(image_path):
     """
     Preprocess the image: Convert to grayscale, apply median blur and thresholding.
@@ -75,14 +74,15 @@ def truncate_data(upper_border, start=200, end=1400):
     """
     return upper_border[start:end]
 
-def smooth_and_plot_truncated_with_zero(upper_border, start=200, end=1400, scale=0.096):
+def smooth_and_plot_truncated_with_zero(upper_border, start=200, end=1400, scale=0.096, shrink_by=0.5):
     """
-    Smooth the truncated upper border, scale it, and shift the central dip to 0.
+    Smooth the truncated upper border, scale it, and shift the central dip to 0 while shrinking the height.
     Args:
         upper_border (numpy array): Array representing the upper border.
         start (int): Start index for truncation.
         end (int): End index for truncation.
-        scale (float): Scaling factor for the y-axis.
+        scale (float): Initial scaling factor for the y-axis.
+        shrink_by (float): Amount (in mm) to reduce the height of the graph.
     """
     # Truncate the data
     truncated_border = truncate_data(upper_border, start, end)
@@ -94,6 +94,13 @@ def smooth_and_plot_truncated_with_zero(upper_border, start=200, end=1400, scale
     # Scale the y-axis values
     scaled_smoothed_border = smoothed_truncated_border * scale
     
+    # Calculate the shrink factor
+    current_range = np.max(scaled_smoothed_border) - np.min(scaled_smoothed_border)
+    shrink_factor = (current_range - shrink_by) / current_range if current_range > shrink_by else 1.0
+    
+    # Apply the shrink factor
+    scaled_smoothed_border = scaled_smoothed_border * shrink_factor
+    
     # Shift the graph so that the central dip touches 0
     scaled_smoothed_border -= np.min(scaled_smoothed_border)
     
@@ -101,13 +108,13 @@ def smooth_and_plot_truncated_with_zero(upper_border, start=200, end=1400, scale
     x_values = np.arange(start, start + len(scaled_smoothed_border))
     
     # Plot the truncated, smoothed, and shifted data
-    plt.plot(x_values, scaled_smoothed_border, color='blue', label='Smoothed Border with Central Dip at 0')
+    plt.plot(x_values, scaled_smoothed_border, color='blue', label=f'Smoothed Border (Shrunk by {shrink_by} mm)')
     plt.xlabel("Column Number (Truncated)")
     plt.ylabel(f"Row Number (Scaled and Shifted)")
-    plt.title(f"Smoothed Upper Border (Shifted: Central Dip at 0, Truncated: {start}-{end})")
+    plt.title(f"Smoothed Upper Border (Shrunk: {shrink_by} mm, Truncated: {start}-{end})")
     
     # Customize y-axis ticks to show 0.5 mm intervals
-    y_min = 0
+    y_min = np.floor(np.min(scaled_smoothed_border) / 0.5) * 0.5  # Round down to the nearest 0.5
     y_max = np.ceil(np.max(scaled_smoothed_border) / 0.5) * 0.5  # Round up to the nearest 0.5
     y_ticks = np.arange(y_min, y_max + 0.5, 0.5)  # Create ticks at 0.5 mm intervals
     plt.yticks(y_ticks)
@@ -116,19 +123,20 @@ def smooth_and_plot_truncated_with_zero(upper_border, start=200, end=1400, scale
     plt.grid(True)
     plt.show()
 
-def DrawGraphWithZero(image_path, start=200, end=1400, scale=0.096):
+def DrawGraphWithZero(image_path, start=200, end=1400, scale=0.096, shrink_by=0.5):
     """
-    Preprocess the image, find the upper border, and plot a truncated graph with central dip touching 0.
+    Preprocess the image, find the upper border, and plot a truncated graph with height reduced by a given amount.
     Args:
         image_path (str): Path to the image file.
         start (int): Start index for truncation.
         end (int): End index for truncation.
-        scale (float): Scaling factor for the y-axis.
+        scale (float): Initial scaling factor for the y-axis.
+        shrink_by (float): Amount (in mm) to shrink the height of the graph.
     """
     thresh = preprocess_image(image_path)
     upper_border = find_upper_border(thresh)
     upper_border_filled = fill_gaps_with_previous(upper_border)
-    smooth_and_plot_truncated_with_zero(upper_border_filled, start, end, scale)
+    smooth_and_plot_truncated_with_zero(upper_border_filled, start, end, scale, shrink_by)
 
 def extract_tread(imgPath):
     """
@@ -157,6 +165,6 @@ def extract_tread(imgPath):
     return output_path
 
 # Example usage
-imgPath = r"captured_image_1732358082.jpg"
+imgPath = r"connection_rod_001.png"
 removedBg = extract_tread(imgPath)
-DrawGraphWithZero(removedBg, start=100, end=1000, scale=Constant)
+DrawGraphWithZero(removedBg, start=2000, end=4000, scale=Constant, shrink_by=1)

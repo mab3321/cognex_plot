@@ -1,3 +1,6 @@
 *.png
 *.jpg
 image_processing_tyre_text/
+.venv/
+gige_processing_tyre_text
+stytch/

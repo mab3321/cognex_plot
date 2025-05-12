@@ -28,13 +28,32 @@ def crop_profile(profile):
     first_valid_index = valid_indices[0]
     return profile[first_valid_index:], first_valid_index
 
-def calculate_tread_depth_mm(profile, constant_mm_per_pixel=0.22):
+def get_constant_for_position(x, total_length, constants=(0.21, 0.22, 0.23)):
     """
-    Convert profile to tread depth in mm relative to outer edge (which is zero).
+    Return region-based constant depending on the X position.
+    """
+    region_length = total_length // 3
+    if x < region_length:
+        return constants[0]
+    elif x < 2 * region_length:
+        return constants[1]
+    else:
+        return constants[2]
+
+def calculate_tread_depth_mm_region(profile, constants=(0.21, 0.22, 0.23)):
+    """
+    Convert profile to tread depth in mm relative to outer edge using region based constants.
     """
     outer_edge_value = np.min(profile)
     pixel_gaps = profile - outer_edge_value
-    depth_mm = pixel_gaps * constant_mm_per_pixel
+
+    total_length = len(profile)
+    depth_mm = np.zeros_like(profile, dtype=np.float32)
+
+    for idx, pixel_gap in enumerate(pixel_gaps):
+        constant = get_constant_for_position(idx, total_length, constants)
+        depth_mm[idx] = pixel_gap * constant
+
     return depth_mm
 
 def correct_depth_profile(depth_profile_mm):
@@ -47,7 +66,7 @@ def correct_depth_profile(depth_profile_mm):
 
 def plot_profile_mm(depth_profile_mm, title="Corrected Tread Depth Profile (mm)", x_start_index=0):
     """
-    Plot corrected tread depth profile in mm.
+    Plot corrected tread depth profile in mm with 0.5 mm based Y ticks.
     """
     x = np.arange(x_start_index, x_start_index + len(depth_profile_mm))
     y = depth_profile_mm
@@ -58,6 +77,12 @@ def plot_profile_mm(depth_profile_mm, title="Corrected Tread Depth Profile (mm)"
     plt.ylabel("Tread Depth (mm)")
     plt.title(title)
     plt.grid(True)
+
+    # Set Y-axis ticks with 0.5 mm step
+    y_min = np.floor(np.min(y) / 0.5) * 0.5
+    y_max = np.ceil(np.max(y) / 0.5) * 0.5
+    plt.yticks(np.arange(y_min, y_max + 0.5, 0.5))
+
     plt.show()
 
 # ==== Example usage ====
@@ -72,8 +97,8 @@ outer_profile = extract_outer_edge(image)
 # Step 2: Remove leading zeros
 cropped_profile, start_x = crop_profile(outer_profile)
 
-# Step 3: Calculate tread depth in mm
-depth_profile_mm = calculate_tread_depth_mm(cropped_profile, constant_mm_per_pixel=0.22)
+# Step 3: Calculate tread depth in mm with region based constants
+depth_profile_mm = calculate_tread_depth_mm_region(cropped_profile, constants=(0.21, 0.22, 0.23))
 
 # Step 4: Correct depth profile (outer ring = 0 mm, grooves upwards)
 corrected_depth_profile = correct_depth_profile(depth_profile_mm)

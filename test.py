@@ -70,5 +70,6 @@ def main():
         ha.close_framegrabber(acq_handle)
         cv2.destroyAllWindows()
 
-if __name__ == "__main__":
-    read_voltage()
+read_voltage()
+# if __name__ == "__main__":
+#     read_voltage()

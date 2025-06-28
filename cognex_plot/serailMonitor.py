@@ -16,13 +16,6 @@ def read_voltage(acq_handle):
                 try:
                     voltage = float(line)
                     print(f"Current voltage: {voltage}V")
-                    # if voltage < THRESHOLD:
-                    #     if not was_below_threshold:
-                    #         print(f"⚠️ Voltage dropped: {voltage}V")
-                    #         image_counter = capture_image(acq_handle, image_counter)
-                    #         was_below_threshold = True
-                    # else:
-                    #     was_below_threshold = False
                 except ValueError:
                     print("⚠️ Invalid voltage input.")
     except KeyboardInterrupt:

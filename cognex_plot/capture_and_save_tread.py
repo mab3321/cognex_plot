@@ -2,7 +2,7 @@ import serial
 import os
 import sys
 import time
-from cognex_plot.extract_tread_from_cognex_disparity import analyze_and_plot_tread_profile
+from extract_tread_from_cognex_disparity import analyze_and_plot_tread_profile
 
 # Add HALCON DLL path
 halcon_bin_path = r"C:\Users\DELL\AppData\Local\Programs\MVTec\HALCON-24.11-Progress-Student-Edition\bin\x64-win64"

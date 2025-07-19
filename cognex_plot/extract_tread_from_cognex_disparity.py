@@ -1,6 +1,27 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from constants import thresholds
+
+# Continuous calibration model based on your data
+import numpy as np
+
+# Coefficients from least squares fit (based on your calibration data)
+# These are from the previous fitting step; you can refine with more data if needed
+
+m_left, b_left = -0.000427, 0.4908
+m_middle, b_middle = -0.000609, 0.6443
+m_right, b_right = -0.000618, 0.6557
+
+def get_continuous_constants(y):
+    """
+    Get per-region constants based on Y (row) using continuous linear models.
+    """
+    c_left = m_left * y + b_left
+    c_middle = m_middle * y + b_middle
+    c_right = m_right * y + b_right
+    return (c_left, c_middle, c_right)
+
 
 def extract_outer_edge(image):
     """
@@ -28,21 +49,48 @@ def crop_profile(profile):
     first_valid_index = valid_indices[0]
     return profile[first_valid_index:], first_valid_index
 
-def get_constant_for_position(x, total_length, constants=(0.21, 0.22, 0.23)):
+def get_constant_for_position(x, y_value, total_length, y_threshold=730,
+                               constants_below=(0.21, 0.22, 0.23),
+                               constants_above=(0.11, 0.12, 0.13)):
     """
-    Return region-based constant depending on the X position.
+    Return region-based constant depending on X and Y position.
+    If the detected Y position is after y_threshold, use different constants.
     """
-    region_length = total_length // 3
-    if x < region_length:
-        return constants[0]
-    elif x < 2 * region_length:
-        return constants[1]
+    if y_value >= y_threshold:
+        constants = constants_above
+        if x == 0:
+            print(f"⚙️ Using constants ABOVE threshold {y_threshold}: {constants_above}")
     else:
-        return constants[2]
+        constants = constants_below
+        if x == 0:
+            print(f"⚙️ Using constants BELOW threshold {y_threshold}: {constants_below}")
 
-def calculate_tread_depth_mm_region(profile, constants=(0.21, 0.22, 0.23)):
+    region_length = len(constants)  # assume 3 regions
+    part_length = total_length // region_length
+
+    for i in range(region_length):
+        if x < (i + 1) * part_length:
+            return constants[i]
+
+    return constants[-1]
+
+
+def get_profile_region_constant(profile_middle_value, thresholds):
     """
-    Convert profile to tread depth in mm relative to outer edge using region based constants.
+    Select constants based on the Y-position of the profile's middle point.
+    """
+    for threshold, constants in thresholds:
+        if profile_middle_value >= threshold:
+            print(f"📏 Profile middle Y={profile_middle_value} -> Using constants {constants} (threshold={threshold})")
+            return constants
+    # Fallback if none match (shouldn't happen if 0 is in thresholds)
+    return thresholds[-1][1]
+
+
+def calculate_tread_depth_mm_region(profile):
+    """
+    Convert profile to tread depth in mm using continuous Y-dependent constants.
+    Prints the middle Y value and the constants used.
     """
     outer_edge_value = np.min(profile)
     pixel_gaps = profile - outer_edge_value
@@ -50,8 +98,26 @@ def calculate_tread_depth_mm_region(profile, constants=(0.21, 0.22, 0.23)):
     total_length = len(profile)
     depth_mm = np.zeros_like(profile, dtype=np.float32)
 
+    # Use middle of the profile to determine the Y-dependent constants
+    middle_idx = total_length // 2
+    profile_middle_value = profile[middle_idx]
+
+    # Debug print: Show middle Y coordinate
+    print(f"📍 Middle index: {middle_idx}, Y value at middle: {profile_middle_value}")
+
+    c_left, c_middle, c_right = get_continuous_constants(profile_middle_value)
+
+    # Debug print: Show the constants being used
+    print(f"⚙️ Using continuous constants at Y={profile_middle_value}: Left={c_left:.4f}, Middle={c_middle:.4f}, Right={c_right:.4f}")
+
+    # Apply per-region constants (image-based: left, middle, right)
     for idx, pixel_gap in enumerate(pixel_gaps):
-        constant = get_constant_for_position(idx, total_length, constants)
+        if idx < total_length // 3:
+            constant = c_left
+        elif idx < 2 * total_length // 3:
+            constant = c_middle
+        else:
+            constant = c_right
         depth_mm[idx] = pixel_gap * constant
 
     return depth_mm
@@ -102,7 +168,7 @@ def analyze_and_plot_tread_profile(image_path, plot_output_path=None):
 
     outer_profile = extract_outer_edge(image)
     cropped_profile, start_x = crop_profile(outer_profile)
-    depth_profile_mm = calculate_tread_depth_mm_region(cropped_profile, constants=(0.21, 0.22, 0.23))
+    depth_profile_mm = calculate_tread_depth_mm_region(cropped_profile)
     corrected_depth_profile = correct_depth_profile(depth_profile_mm)
     plot_profile_mm(corrected_depth_profile, title="Corrected Tread Depth Profile (mm)", x_start_index=start_x, save_path=plot_output_path)
 

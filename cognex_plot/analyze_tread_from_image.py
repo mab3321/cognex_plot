@@ -40,7 +40,7 @@ def analyze_and_plot_tread_profile(image_path, plot_output_path=None):
 
     outer_profile = extract_outer_edge(image)
     cropped_profile, start_x = crop_profile(outer_profile)
-    depth_profile_mm = calculate_tread_depth_mm_region(cropped_profile, constants=(0.21, 0.22, 0.23))
+    depth_profile_mm = calculate_tread_depth_mm_region(cropped_profile)
     corrected_depth_profile = correct_depth_profile(depth_profile_mm)
     plot_profile_mm(corrected_depth_profile, title="Corrected Tread Depth Profile (mm)", x_start_index=start_x, save_path=plot_output_path)
 

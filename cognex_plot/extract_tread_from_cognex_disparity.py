@@ -1,4 +1,5 @@
 import cv2
+import csv
 import numpy as np
 import matplotlib.pyplot as plt
 from constants import thresholds
@@ -9,9 +10,11 @@ import numpy as np
 # Coefficients from least squares fit (based on your calibration data)
 # These are from the previous fitting step; you can refine with more data if needed
 
-m_left, b_left = -0.000427, 0.4908
-m_middle, b_middle = -0.000609, 0.6443
-m_right, b_right = -0.000618, 0.6557
+# Corrected, clean linear model with incorporated calibration
+m_left, b_left = -0.000465, 0.534
+m_middle, b_middle = -0.000694, 0.7335
+m_right, b_right = -0.000800, 0.8496
+
 
 def get_continuous_constants(y):
     """
@@ -86,11 +89,9 @@ def get_profile_region_constant(profile_middle_value, thresholds):
     # Fallback if none match (shouldn't happen if 0 is in thresholds)
     return thresholds[-1][1]
 
-
 def calculate_tread_depth_mm_region(profile):
     """
-    Convert profile to tread depth in mm using continuous Y-dependent constants.
-    Prints the middle Y value and the constants used.
+    Per-pixel Y-dependent calibration with built-in corrections.
     """
     outer_edge_value = np.min(profile)
     pixel_gaps = profile - outer_edge_value
@@ -98,26 +99,24 @@ def calculate_tread_depth_mm_region(profile):
     total_length = len(profile)
     depth_mm = np.zeros_like(profile, dtype=np.float32)
 
-    # Use middle of the profile to determine the Y-dependent constants
+    # For debugging purposes
     middle_idx = total_length // 2
     profile_middle_value = profile[middle_idx]
-
-    # Debug print: Show middle Y coordinate
     print(f"📍 Middle index: {middle_idx}, Y value at middle: {profile_middle_value}")
 
-    c_left, c_middle, c_right = get_continuous_constants(profile_middle_value)
+    for idx, (pixel_gap, y_value) in enumerate(zip(pixel_gaps, profile)):
+        # Local constants directly calibrated
+        c_left = m_left * y_value + b_left
+        c_middle = m_middle * y_value + b_middle
+        c_right = m_right * y_value + b_right
 
-    # Debug print: Show the constants being used
-    print(f"⚙️ Using continuous constants at Y={profile_middle_value}: Left={c_left:.4f}, Middle={c_middle:.4f}, Right={c_right:.4f}")
-
-    # Apply per-region constants (image-based: left, middle, right)
-    for idx, pixel_gap in enumerate(pixel_gaps):
         if idx < total_length // 3:
             constant = c_left
         elif idx < 2 * total_length // 3:
             constant = c_middle
         else:
             constant = c_right
+
         depth_mm[idx] = pixel_gap * constant
 
     return depth_mm
@@ -154,6 +153,20 @@ def plot_profile_mm(depth_profile_mm, title="Corrected Tread Depth Profile (mm)"
     plt.close()
 
 # ==== Example usage ====
+def save_tread_profile(depth_profile_mm, x_start_index=0, filename="tread_profile.csv"):
+    """
+    Save the tread depth profile to CSV.
+    """
+    x = np.arange(x_start_index, x_start_index + len(depth_profile_mm))
+    data = zip(x, depth_profile_mm)
+
+    with open(filename, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Column Index", "Tread Depth (mm)"])
+        writer.writerows(data)
+
+    print(f"💾 Tread profile saved to {filename}")
+
 
 # Load image
 img_path = "captures\\laser_trigger_000.png"

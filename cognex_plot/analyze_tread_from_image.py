@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-from extract_tread_from_cognex_disparity import calculate_tread_depth_mm_region, correct_depth_profile, crop_profile, extract_outer_edge
+from extract_tread_from_cognex_disparity import calculate_tread_depth_mm_region, correct_depth_profile, crop_profile, extract_outer_edge, save_tread_profile
 
 
 def plot_profile_mm(depth_profile_mm, title="Corrected Tread Depth Profile (mm)", x_start_index=0, save_path=None):
@@ -43,5 +43,6 @@ def analyze_and_plot_tread_profile(image_path, plot_output_path=None):
     depth_profile_mm = calculate_tread_depth_mm_region(cropped_profile)
     corrected_depth_profile = correct_depth_profile(depth_profile_mm)
     plot_profile_mm(corrected_depth_profile, title="Corrected Tread Depth Profile (mm)", x_start_index=start_x, save_path=plot_output_path)
+    save_tread_profile(corrected_depth_profile, x_start_index=start_x, filename="tread_profile.csv")
 
 analyze_and_plot_tread_profile(img_path,"new.png")

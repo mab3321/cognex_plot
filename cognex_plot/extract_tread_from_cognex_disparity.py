@@ -90,7 +90,7 @@ def plot_profile_mm(depth_profile_mm, title="Corrected Tread Depth Profile (mm)"
 # ==== Example usage ====
 
 # Load image
-img_path = "saved_image_000.png"
+img_path = "captures\\laser_trigger_000.png"
 def analyze_and_plot_tread_profile(image_path, plot_output_path=None):
     """
     Analyze tread profile and save plot to file.

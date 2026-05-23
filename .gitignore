@@ -6,3 +6,4 @@ gige_processing_tyre_text
 stytch/
 /__pycache__/
 *.pyc
+!datapins.png

@@ -4,9 +4,14 @@ import sys
 import time
 from extract_tread_from_cognex_disparity import analyze_and_plot_tread_profile
 
-# Add HALCON DLL path
-halcon_bin_path = r"C:\Users\DELL\AppData\Local\Programs\MVTec\HALCON-24.11-Progress-Student-Edition\bin\x64-win64"
-os.environ["PATH"] = halcon_bin_path + os.pathsep + os.environ["PATH"]
+# Add HALCON DLL directory for Python 3.8+ on Windows
+if os.name == 'nt' and hasattr(os, 'add_dll_directory'):
+    halconroot = os.environ.get('HALCONROOT')
+    if halconroot:
+        halcon_bin = os.path.join(halconroot, 'bin', 'x64-win64')
+        if os.path.exists(halcon_bin):
+            os.add_dll_directory(halcon_bin)
+
 import halcon as ha
 
 # Settings

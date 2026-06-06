@@ -7,3 +7,7 @@ stytch/
 /__pycache__/
 *.pyc
 !datapins.png
+!pin-2-colour.jpeg
+!pinout.png
+config.bat
+node_modules
